@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+    <defs>
+        <linearGradient id="b3Grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#3b82f6" />
+            <stop offset="100%" stop-color="#1d4ed8" />
+        </linearGradient>
+        <linearGradient id="lineGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#60a5fa" />
+            <stop offset="100%" stop-color="#ffffff" />
+        </linearGradient>
+    </defs>
+    
+    <!-- Fundo Arredondado -->
+    <rect width="64" height="64" rx="16" fill="url(#b3Grad)" />
+    
+    <!-- Gráfico de Tendência (Stock Chart Arrow) -->
+    <path d="M12 44 L26 30 L36 38 L52 18" fill="none" stroke="url(#lineGrad)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M40 18 L52 18 L52 30" fill="none" stroke="url(#lineGrad)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" />
+</svg>

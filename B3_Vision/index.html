@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>B3 Vision - Dashboard de Ações da Bolsa</title>
+    <meta name="description" content="Dashboard financeiro completo para acompanhamento de ações da B3 utilizando HTML, CSS e JavaScript puro com a API brapi.dev.">
+    
+    <!-- Favicon SVG -->
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="shortcut icon" href="favicon.svg">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Three.js CDN para a matriz 3D de partículas pulsantes -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <!-- Estilos da Aplicação -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- CANVAS FIXO EM SEGUNDO PLANO (WALLPAPER 3D MATRIZ DE PARTÍCULAS EM TELA CHEIA) -->
+    <canvas id="canvasOrganismBg" class="organism-wallpaper-canvas"></canvas>
+
+    <!-- CABEÇALHO PRINCIPAL -->
+    <header class="app-header">
+        <div class="container header-container">
+            <div class="brand">
+                <div class="logo-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+                        <polyline points="16 7 22 7 22 13"></polyline>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="brand-title">B3 Vision</h1>
+                    <p class="brand-subtitle">Dashboard de Investimentos B3 &bull; Dados via brapi.dev</p>
+                </div>
+            </div>
+
+            <!-- CONTROLES DO FUNDO 3D (BOTÃO LIGAR/DESLIGAR + CORES DAS AÇÕES) -->
+            <div class="wallpaper-controls" title="Controles do Fundo 3D">
+                <span class="wallpaper-label">Fundo 3D:</span>
+                
+                <!-- BOTÃO LIGAR / DESLIGAR FUNDO 3D -->
+                <button id="btnToggleWallpaper3D" class="btn-toggle-3d active" title="Ligar ou Desligar Fundo 3D">
+                    <span id="labelToggle3D">ON</span>
+                </button>
+
+                <div class="wallpaper-presets" id="presetsCorWallpaper">
+                    <button class="btn-preset-dot active" data-ticker="PETR4" style="--preset-color: #3b82f6;" title="PETR4 - Azul Petrobras"></button>
+                    <button class="btn-preset-dot" data-ticker="VALE3" style="--preset-color: #10b981;" title="VALE3 - Verde Vale"></button>
+                    <button class="btn-preset-dot" data-ticker="ITUB4" style="--preset-color: #f59e0b;" title="ITUB4 - Laranja Itaú"></button>
+                    <button class="btn-preset-dot" data-ticker="MGLU3" style="--preset-color: #ec4899;" title="MGLU3 - Rosa Magalu"></button>
+                </div>
+            </div>
+
+            <div class="header-actions">
+                <div class="update-info">
+                    <span class="update-label">Última atualização:</span>
+                    <span id="labelUltimaAtualizacao" class="update-time">--:--:--</span>
+                </div>
+                <button id="btnAtualizarDados" class="btn btn-primary">
+                    <svg class="icon-refresh" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21.5 2v6h-6M2.1 12a10 10 0 0 1 15-6.7L21.5 8M2.5 22v-6h6M21.9 12a10 10 0 0 1-15 6.7L2.5 16"/>
+                    </svg>
+                    <span>Atualizar dados</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container main-content">
+
+        <!-- CONTAINER DE MENSAGENS E ERROS DA API -->
+        <div id="containerErro" class="alert alert-danger hidden" role="alert">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            <span id="textoErro">Não foi possível carregar os dados. Tente novamente em alguns instantes.</span>
+            <button id="btnFecharErro" class="btn-close" aria-label="Fechar alerta">&times;</button>
+        </div>
+
+        <!-- SELETOR DE AÇÕES -->
+        <section class="section-card selector-section">
+            <h2 class="section-title">Ação Selecionada</h2>
+            <div class="ticker-buttons" id="seletorTickers">
+                <button class="btn-ticker active" data-ticker="PETR4">
+                    <span class="ticker-name">PETR4</span>
+                    <span class="ticker-desc">Petrobras</span>
+                </button>
+                <button class="btn-ticker" data-ticker="VALE3">
+                    <span class="ticker-name">VALE3</span>
+                    <span class="ticker-desc">Vale S.A.</span>
+                </button>
+                <button class="btn-ticker" data-ticker="ITUB4">
+                    <span class="ticker-name">ITUB4</span>
+                    <span class="ticker-desc">Itaú Unibanco</span>
+                </button>
+                <button class="btn-ticker" data-ticker="MGLU3">
+                    <span class="ticker-name">MGLU3</span>
+                    <span class="ticker-desc">Magalu</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- RESUMO DA AÇÃO SELECIONADA -->
+        <section class="stock-details-section">
+            <div class="stock-header-card">
+                <div class="stock-identity">
+                    <img id="stockLogo" src="" alt="Logo Ação" class="stock-logo hidden">
+                    <div>
+                        <h2 id="stockTickerTitle" class="stock-symbol-title">PETR4</h2>
+                        <p id="stockLongName" class="stock-company-name">Petróleo Brasileiro S.A.</p>
+                    </div>
+                </div>
+                <div class="stock-price-highlight">
+                    <div id="stockPrice" class="main-price">R$ --,--</div>
+                    <div id="stockChangeBadge" class="badge-change neutral">
+                        <span id="stockChangeIcon">&bull;</span>
+                        <span id="stockChangePercent">0.00%</span>
+                        (<span id="stockChangeValue">R$ 0,00</span>)
+                    </div>
+                </div>
+            </div>
+
+            <!-- CARDS DE METRICAS CHAVE -->
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-label">Máxima do dia</div>
+                    <div id="metricDayHigh" class="metric-value">R$ --,--</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Mínima do dia</div>
+                    <div id="metricDayLow" class="metric-value">R$ --,--</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Volume negociado</div>
+                    <div id="metricVolume" class="metric-value">--</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- GRÁFICO HISTÓRICO -->
+        <section class="section-card chart-section">
+            <div class="section-header-row">
+                <div>
+                    <h2 class="section-title">Histórico de Preço</h2>
+                    <p class="section-subtitle">Evolução do preço de fechamento no período selecionado</p>
+                </div>
+                <div class="period-selector" id="seletorPeriodo">
+                    <button class="btn-period active" data-range="1mo">1 Mês</button>
+                    <button class="btn-period" data-range="3mo">3 Meses</button>
+                    <button class="btn-period" data-range="6mo">6 Meses</button>
+                    <button class="btn-period" data-range="1y">1 Ano</button>
+                </div>
+            </div>
+            
+            <div class="chart-wrapper">
+                <div id="chartLoadingOverlay" class="chart-loading-overlay hidden">
+                    <div class="spinner"></div>
+                    <span>Carregando gráfico...</span>
+                </div>
+                <canvas id="chartHistorico"></canvas>
+            </div>
+        </section>
+
+        <!-- COMPARAÇÃO DE DESEMPENHO -->
+        <section class="section-card compare-section">
+            <div class="section-header-row">
+                <div>
+                    <h2 class="section-title">Comparar Ações</h2>
+                    <p class="section-subtitle">Desempenho percentual relativo acumulado no período (1 Mês)</p>
+                </div>
+            </div>
+
+            <div class="compare-controls">
+                <span class="compare-instruction">Selecione de 2 a 4 ações para comparar:</span>
+                <div class="checkbox-group" id="grupoComparacao">
+                    <label class="checkbox-label">
+                        <input type="checkbox" value="PETR4" checked class="checkbox-ticker">
+                        <span class="custom-checkbox"></span>
+                        PETR4
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" value="VALE3" checked class="checkbox-ticker">
+                        <span class="custom-checkbox"></span>
+                        VALE3
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" value="ITUB4" class="checkbox-ticker">
+                        <span class="custom-checkbox"></span>
+                        ITUB4
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" value="MGLU3" class="checkbox-ticker">
+                        <span class="custom-checkbox"></span>
+                        MGLU3
+                    </label>
+                </div>
+            </div>
+
+            <div class="chart-wrapper">
+                <div id="compareLoadingOverlay" class="chart-loading-overlay hidden">
+                    <div class="spinner"></div>
+                    <span>Carregando dados de comparação...</span>
+                </div>
+                <canvas id="chartComparacao"></canvas>
+            </div>
+        </section>
+
+        <!-- CARTEIRA SIMULADA -->
+        <section class="portfolio-section">
+            <div class="section-header-row">
+                <div>
+                    <h2 class="section-title">Minha Carteira Simulada</h2>
+                    <p class="section-subtitle">Gerencie e acompanhe a rentabilidade de seus investimentos em tempo real</p>
+                </div>
+            </div>
+
+            <!-- RESUMO TOTAL DA CARTEIRA -->
+            <div class="portfolio-summary-grid">
+                <div class="summary-card">
+                    <div class="summary-label">Total Investido</div>
+                    <div id="portTotalInvestido" class="summary-value">R$ 0,00</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-label">Valor Atual da Carteira</div>
+                    <div id="portValorAtual" class="summary-value">R$ 0,00</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-label">Lucro / Prejuízo Total</div>
+                    <div id="portLucroPrejuizo" class="summary-value neutral">R$ 0,00</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-label">Rentabilidade Total</div>
+                    <div id="portRentabilidade" class="summary-value neutral">0.00%</div>
+                </div>
+            </div>
+
+            <!-- FORMULÁRIO PARA ADICIONAR ATIVO -->
+            <div class="section-card form-card">
+                <h3 class="card-subtitle">Adicionar Nova Posição</h3>
+                <form id="formAdicionarAtivo" class="portfolio-form" novalidate>
+                    <div class="form-group">
+                        <label for="selectTickerForm">Ticker</label>
+                        <select id="selectTickerForm" class="form-control" required>
+                            <option value="PETR4">PETR4 - Petrobras</option>
+                            <option value="VALE3">VALE3 - Vale S.A.</option>
+                            <option value="ITUB4">ITUB4 - Itaú Unibanco</option>
+                            <option value="MGLU3">MGLU3 - Magazine Luiza</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="inputQuantidade">Quantidade de Ações</label>
+                        <input type="number" id="inputQuantidade" class="form-control" placeholder="Ex: 10" min="1" step="1" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="inputPrecoCompra">Preço de Compra (R$)</label>
+                        <input type="number" id="inputPrecoCompra" class="form-control" placeholder="Ex: 35.50" min="0.01" step="0.01" required>
+                    </div>
+
+                    <div class="form-group form-button-group">
+                        <button type="submit" id="btnAdicionarAtivo" class="btn btn-success btn-full">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                            <span>Adicionar à carteira</span>
+                        </button>
+                    </div>
+                </form>
+                <div id="mensagemFeedbackForm" class="form-feedback hidden"></div>
+            </div>
+
+            <!-- TABELA DE POSIÇÕES OU ESTADO VAZIO -->
+            <div class="section-card table-card">
+                <h3 class="card-subtitle">Posições Ativas</h3>
+                
+                <div id="containerTabelaCarteira" class="table-responsive">
+                    <table class="portfolio-table">
+                        <thead>
+                            <tr>
+                                <th>Ticker</th>
+                                <th>Qtd.</th>
+                                <th>Preço Compra</th>
+                                <th>Preço Atual</th>
+                                <th>Investido</th>
+                                <th>Valor Atual</th>
+                                <th>Lucro / Prejuízo</th>
+                                <th>Rentabilidade</th>
+                                <th class="text-center">Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody id="corpoTabelaCarteira">
+                            <!-- Inserido dinamicamente via JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- ESTADO VAZIO -->
+                <div id="estadoVazioCarteira" class="empty-state hidden">
+                    <div class="empty-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                        </svg>
+                    </div>
+                    <h4 class="empty-title">Sua carteira ainda está vazia</h4>
+                    <p class="empty-desc">Adicione sua primeira posição no formulário acima para acompanhar seu desempenho em tempo real.</p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- RODAPÉ -->
+    <footer class="app-footer">
+        <div class="container footer-container">
+            <p>B3 Vision &copy; 2026 - Projeto educacional do SENAI.</p>
+            <p class="disclaimer">Os dados apresentados são obtidos via API pública (brapi.dev) apenas para fins de estudo e não constituem recomendação de investimento.</p>
+        </div>
+    </footer>
+
+    <!-- Script Principal -->
+    <script src="script.js"></script>
+</body>
+</html>
